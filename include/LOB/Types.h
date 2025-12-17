@@ -19,4 +19,4 @@ enum class Side : int8_t {
     Sell = -1
 };
 
-} // namespace LOB
+}

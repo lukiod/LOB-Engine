@@ -14,6 +14,15 @@ class OrderBook {
 public:
     OrderBook() : orderAllocator_(1000000) {}
     
+    ~OrderBook() {
+        for (auto& pair : bids_) {
+            delete pair.second;
+        }
+        for (auto& pair : asks_) {
+            delete pair.second;
+        }
+    }
+    
     // Helper to find limit (Public for Main healing)
     Limit* getOrCreateLimit(Price price, Side side) {
         if (side == Side::Buy) {
@@ -71,30 +80,22 @@ public:
 
     // Cancel/Delete Order
     // Updated to handle cases where we don't have the OrderID (pre-snapshot orders)
-    void cancelOrder(OrderID id, Price price, Side side) {
+    // Cancel an order by ID
+    // Returns true if found and canceled
+    bool cancelOrder(OrderID id) {
         auto it = orderLookup_.find(id);
         if (it != orderLookup_.end()) {
             Order* order = it->second;
             Limit* limit = order->parentLimit;
             limit->removeOrder(order);
-            if (limit->isEmpty() && limit->totalVolume == 0) { // Check both count and vol
+            if (limit->isEmpty() && limit->totalVolume == 0) {
                 removeLimit(limit);
             }
             orderAllocator_.deallocate(order);
             orderLookup_.erase(it);
-        } else {
-            // Fallback: Level 2 Update
-            Limit* limit = getLimit(price, side);
-            if (limit) {
-                // We don't know the size of the specific order, but usually 'cancel' comes with a size if it's partial.
-                // But Type 3 is "Total Deletion". LOBSTER Type 3 *does* include size!
-                // Wait, the caller must provide size.
-                // Existing signature was cancelOrder(id). 
-                // We need size to handle the fallback.
-                // But Type 3 in message *has* size.
-                // I need to update the signature to take size.
-            }
+            return true;
         }
+        return false;
     }
     
     // Overloaded for convenience/backward compat if needed, but we should change the main interface
@@ -245,23 +246,9 @@ private:
 
     // Memory Pool
     SlabAllocator<Order> orderAllocator_;
-    
-    // We also need to manage Limit objects. 
-    // Ideally we'd have a SlabAllocator for Limits too, but std::map owns them unless we store ptrs.
-    // We are storing Limit* in map, so we can use a pool. For simplicity in first pass, using new/delete.
-    // Optimization TODO: SlabAllocator<Limit>
 
     void removeLimit(Limit* limit) {
         if (limit->totalVolume > 0) return; // Safety check
-
-        // Remove from map
-        // This is slow: O(log N).
-        // Since we have the limit pointer, we could check side and iterate, but map erase by key is easiest.
-        // We assume we know the side? Limit doesn't store side currently.
-        // Let's search both or store side in Limit.
-        
-        // Optimisation: Limit should know its side to avoid double lookup.
-        // For now, checking bids first.
         auto bidIt = bids_.find(limit->limitPrice);
         if (bidIt != bids_.end() && bidIt->second == limit) {
             bids_.erase(bidIt);
@@ -278,4 +265,4 @@ private:
     }
 };
 
-} // namespace LOB
+}

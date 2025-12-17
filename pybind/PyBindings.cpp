@@ -14,6 +14,7 @@ PYBIND11_MODULE(lob_core, m) {
     py::class_<LOB::OrderBook>(m, "OrderBook")
         .def(py::init<>())
         .def("add_order", &LOB::OrderBook::addOrder, "Add a new order")
+        .def("cancel_order", &LOB::OrderBook::cancelOrder, "Cancel an order by ID")
         .def("delete_order", &LOB::OrderBook::deleteOrder, "Delete an order by ID (with fallback)")
         .def("execute_order", &LOB::OrderBook::executeOrder, "Execute an order by ID")
         .def("get_best_bid", &LOB::OrderBook::getBestBid, "Get Best Bid Price")

@@ -4,7 +4,7 @@
 
 namespace LOB {
 
-struct Limit; // Forward declaration
+struct Limit;
 
 struct Order {
     OrderID id;
@@ -36,4 +36,4 @@ struct Order {
     }
 };
 
-} // namespace LOB
+}

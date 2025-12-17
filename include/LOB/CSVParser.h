@@ -71,4 +71,4 @@ private:
     const char* end_;
 };
 
-} // namespace LOB
+}

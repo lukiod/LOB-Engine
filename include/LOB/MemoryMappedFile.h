@@ -91,4 +91,4 @@ private:
     size_t size_;
 };
 
-} // namespace LOB
+}
